@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"encoding"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,51 +11,10 @@ import (
 	"text/template"
 
 	"github.com/labstack/gommon/log"
+	"github.com/udovin/solve/config"
 )
 
-type LogLevel log.Lvl
-
-func (l LogLevel) MarshalText() ([]byte, error) {
-	switch log.Lvl(l) {
-	case 0:
-		return nil, nil
-	case log.DEBUG:
-		return []byte("debug"), nil
-	case log.INFO:
-		return []byte("info"), nil
-	case log.WARN:
-		return []byte("warning"), nil
-	case log.ERROR:
-		return []byte("error"), nil
-	case log.OFF:
-		return []byte("off"), nil
-	default:
-		return nil, fmt.Errorf("unknown level %d", l)
-	}
-}
-
-func (l *LogLevel) UnmarshalText(text []byte) error {
-	switch string(text) {
-	case "debug":
-		*l = LogLevel(log.DEBUG)
-	case "info":
-		*l = LogLevel(log.INFO)
-	case "warning", "warn":
-		*l = LogLevel(log.WARN)
-	case "error":
-		*l = LogLevel(log.ERROR)
-	case "off":
-		*l = LogLevel(log.OFF)
-	default:
-		return fmt.Errorf("unknown level: %q", text)
-	}
-	return nil
-}
-
-var (
-	_ encoding.TextMarshaler   = LogLevel(0)
-	_ encoding.TextUnmarshaler = (*LogLevel)(nil)
-)
+type LogLevel = config.LogLevel
 
 // Config stores configuration for GoQuiz.
 type Config struct {
