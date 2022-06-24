@@ -35,6 +35,9 @@ func (c *Core) SetupAllStores() {
 		)
 	}
 	c.Visits = models.NewVisitStore(c.DB, "goquiz_visit")
+	c.Quizes = models.NewQuizStore(c.DB, "goquiz_quiz", "goquiz_quiz_event")
+	c.Pools = models.NewPoolStore(c.DB, "goquiz_pool", "goquiz_pool_event")
+	c.Problems = models.NewProblemStore(c.DB, "goquiz_problem", "goquiz_problem_event")
 }
 
 func (c *Core) startStores(start func(models.Store, time.Duration)) {
@@ -45,6 +48,9 @@ func (c *Core) startStores(start func(models.Store, time.Duration)) {
 	start(c.AccountRoles, time.Second)
 	start(c.Sessions, time.Second)
 	start(c.Users, time.Second)
+	start(c.Quizes, time.Second)
+	start(c.Pools, time.Second)
+	start(c.Problems, time.Second)
 }
 
 func (c *Core) startStoreLoops() error {

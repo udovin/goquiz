@@ -21,7 +21,7 @@ var (
 		DB: config.DB{
 			Options: config.SQLiteOptions{Path: ":memory:"},
 		},
-		SocketFile: fmt.Sprintf("/tmp/test-solve-%d.sock", rand.Int63()),
+		SocketFile: fmt.Sprintf("/tmp/test-goquiz-%d.sock", rand.Int63()),
 		Server:     &config.Server{},
 		Security: &config.Security{
 			PasswordSalt: "qwerty123",

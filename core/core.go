@@ -35,6 +35,12 @@ type Core struct {
 	// Visits contains visit store.
 	Visits *models.VisitStore
 	//
+	Quizes *models.QuizStore
+	//
+	Pools *models.PoolStore
+	//
+	Problems *models.ProblemStore
+	//
 	context context.Context
 	cancel  context.CancelFunc
 	waiter  sync.WaitGroup
