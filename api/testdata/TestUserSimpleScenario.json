@@ -16,9 +16,6 @@
     "permissions": [
       "login",
       "logout",
-      "observe_contests",
-      "observe_problems",
-      "observe_solutions",
       "observe_user",
       "status"
     ]

@@ -3,8 +3,6 @@ package models
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/udovin/solve/db"
 )
 
 type sessionStoreTest struct{}
@@ -25,7 +23,7 @@ func (t *sessionStoreTest) prepareDB(tx *sql.Tx) error {
 	_, err := tx.Exec(
 		`CREATE TABLE "session_event" (` +
 			`"event_id" integer PRIMARY KEY,` +
-			`"event_type" int8 NOT NULL,` +
+			`"event_kind" int8 NOT NULL,` +
 			`"event_time" bigint NOT NULL,` +
 			`"event_account_id" integer NULL,` +
 			`"id" integer NOT NULL,` +
@@ -43,21 +41,21 @@ func (t *sessionStoreTest) newStore() Store {
 	return NewSessionStore(testDB, "session", "session_event")
 }
 
-func (t *sessionStoreTest) newObject() db.Object {
+func (t *sessionStoreTest) newObject() Object {
 	return Session{}
 }
 
 func (t *sessionStoreTest) createObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	object := o.(Session)
 	err := s.(*SessionStore).Create(wrapContext(tx), &object)
 	return object, err
 }
 
 func (t *sessionStoreTest) updateObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	return o, s.(*SessionStore).Update(wrapContext(tx), o.(Session))
 }
 

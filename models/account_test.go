@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"testing"
-
-	"github.com/udovin/solve/db"
 )
 
 type accountStoreTest struct{}
@@ -22,7 +20,7 @@ func (t *accountStoreTest) prepareDB(tx *sql.Tx) error {
 	_, err := tx.Exec(
 		`CREATE TABLE "account_event" (` +
 			`"event_id" integer PRIMARY KEY,` +
-			`"event_type" int8 NOT NULL,` +
+			`"event_kind" int8 NOT NULL,` +
 			`"event_time" bigint NOT NULL,` +
 			`"event_account_id" integer NULL,` +
 			`"id" integer NOT NULL,` +
@@ -36,13 +34,13 @@ func (t *accountStoreTest) newStore() Store {
 	return NewAccountStore(testDB, "account", "account_event")
 }
 
-func (t *accountStoreTest) newObject() db.Object {
+func (t *accountStoreTest) newObject() Object {
 	return Account{}
 }
 
 func (t *accountStoreTest) createObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	account := o.(Account)
 	if err := s.(*AccountStore).Create(wrapContext(tx), &account); err != nil {
 		return Account{}, err
@@ -51,8 +49,8 @@ func (t *accountStoreTest) createObject(
 }
 
 func (t *accountStoreTest) updateObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	return o, s.(*AccountStore).Update(wrapContext(tx), o.(Account))
 }
 

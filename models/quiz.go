@@ -5,11 +5,7 @@ import (
 )
 
 type Quiz struct {
-	ID int64 `db:"id"`
-}
-
-func (o Quiz) ObjectID() int64 {
-	return o.ID
+	baseObject
 }
 
 type QuizEvent struct {
@@ -26,20 +22,12 @@ func (e *QuizEvent) SetObject(o Quiz) {
 }
 
 type QuizStore struct {
-	baseStore[Quiz, QuizEvent]
+	baseStore[Quiz, QuizEvent, *Quiz, *QuizEvent]
 	quizes map[int64]Quiz
 }
 
 func (s *QuizStore) reset() {
 	s.quizes = map[int64]Quiz{}
-}
-
-func (s *QuizStore) makeObject(id int64) Quiz {
-	return Quiz{ID: id}
-}
-
-func (s *QuizStore) makeObjectEvent(typ EventType) QuizEvent {
-	return QuizEvent{baseEvent: makeBaseEvent(typ)}
 }
 
 func (s *QuizStore) onCreateObject(quiz Quiz) {

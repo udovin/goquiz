@@ -7,7 +7,9 @@ import (
 
 	"github.com/udovin/goquiz/config"
 	"github.com/udovin/goquiz/core"
-	"github.com/udovin/goquiz/migrations"
+	"github.com/udovin/solve/db"
+
+	_ "github.com/udovin/goquiz/migrations"
 )
 
 var testCfg = config.Config{
@@ -25,7 +27,7 @@ func TestNewCore(t *testing.T) {
 		t.Fatal("Error:", err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Apply(c); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB); err != nil {
 		t.Fatal("Error:", err)
 	}
 	if err := c.Start(); err != nil {
@@ -66,7 +68,7 @@ func TestCore_WithTx(t *testing.T) {
 		t.Fatal("Error:", err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Apply(c); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB); err != nil {
 		t.Fatal("Error:", err)
 	}
 	if err := c.Start(); err != nil {

@@ -32,7 +32,7 @@ func testTeardown(tb testing.TB) {
 	_ = testDB.Close()
 }
 
-func TestEventType(t *testing.T) {
+func TestEventKind(t *testing.T) {
 	if s := fmt.Sprintf("%s", CreateEvent); s != "create" {
 		t.Errorf("Expected %q, got %q", "create", s)
 	}
@@ -42,8 +42,8 @@ func TestEventType(t *testing.T) {
 	if s := fmt.Sprintf("%s", DeleteEvent); s != "delete" {
 		t.Errorf("Expected %q, got %q", "delete", s)
 	}
-	if s := fmt.Sprintf("%s", EventType(-1)); s != "EventType(-1)" {
-		t.Errorf("Expected %q, got %q", "EventType(-1)", s)
+	if s := fmt.Sprintf("%s", EventKind(-1)); s != "EventKind(-1)" {
+		t.Errorf("Expected %q, got %q", "EventKind(-1)", s)
 	}
 }
 
@@ -65,6 +65,10 @@ func (o testObject) ObjectID() int64 {
 	return o.ID
 }
 
+func (o *testObject) SetObjectID(id int64) {
+	o.ID = id
+}
+
 type testObjectEvent struct {
 	baseEvent
 	testObject
@@ -79,7 +83,7 @@ func (e *testObjectEvent) SetObject(o testObject) {
 }
 
 type testStore struct {
-	baseStore[testObject, testObjectEvent]
+	baseStore[testObject, testObjectEvent, *testObject, *testObjectEvent]
 	table, eventTable string
 	objects           map[int64]testObject
 }
@@ -95,7 +99,7 @@ func (s *testStore) makeObject(id int64) testObject {
 	return testObject{ID: id}
 }
 
-func (s *testStore) makeObjectEvent(typ EventType) testObjectEvent {
+func (s *testStore) makeObjectEvent(typ EventKind) testObjectEvent {
 	return testObjectEvent{baseEvent: makeBaseEvent(typ)}
 }
 
@@ -142,7 +146,7 @@ func migrateTestStore(t testing.TB, s *testStore) {
 	if _, err := tx.Exec(fmt.Sprintf(
 		`CREATE TABLE %q (`+
 			`"event_id" integer PRIMARY KEY,`+
-			`"event_type" int8 NOT NULL,`+
+			`"event_kind" int8 NOT NULL,`+
 			`"event_time" bigint NOT NULL,`+
 			`"event_account_id" integer NULL,`+
 			`"id" integer NOT NULL,`+
@@ -166,7 +170,7 @@ func newTestStore() *testStore {
 		table:      "test_object",
 		eventTable: "test_object_event",
 	}
-	impl.baseStore = makeBaseStore[testObject, testObjectEvent](
+	impl.baseStore = makeBaseStore[testObject, testObjectEvent, *testObject, *testObjectEvent](
 		testDB, impl.table, impl.eventTable, impl,
 	)
 	return impl
@@ -299,7 +303,7 @@ func TestBaseStore_lockStore(t *testing.T) {
 }
 
 func TestBaseStore_consumeEvent(t *testing.T) {
-	store := baseStore[testObject, testObjectEvent]{}
+	store := baseStore[testObject, testObjectEvent, *testObject, *testObjectEvent]{}
 	if err := store.consumeEvent(testObjectEvent{
 		baseEvent: makeBaseEvent(-1),
 	}); err == nil {
@@ -314,7 +318,7 @@ func TestBaseStore_InitTx(t *testing.T) {
 		table:      "invalid_object",
 		eventTable: "invalid_object_event",
 	}
-	store.baseStore = makeBaseStore[testObject, testObjectEvent](
+	store.baseStore = makeBaseStore[testObject, testObjectEvent, *testObject, *testObjectEvent](
 		testDB, store.table, store.eventTable, store,
 	)
 	if err := store.Init(context.Background()); err == nil {
@@ -403,7 +407,7 @@ func TestJSON_Scan(t *testing.T) {
 	if err := a.Scan([]byte("{")); err == nil {
 		t.Fatal("Expected error")
 	}
-	if err := a.Scan(baseStore[testObject, testObjectEvent]{}); err == nil {
+	if err := a.Scan(baseStore[testObject, testObjectEvent, *testObject, *testObjectEvent]{}); err == nil {
 		t.Fatal("Expected error")
 	}
 }
@@ -449,12 +453,16 @@ func TestJSON_clone(t *testing.T) {
 	}
 }
 
+type Object interface {
+	ObjectID() int64
+}
+
 type StoreTestHelper interface {
 	prepareDB(tx *sql.Tx) error
 	newStore() Store
-	newObject() db.Object
-	createObject(s Store, tx *sql.Tx, o db.Object) (db.Object, error)
-	updateObject(s Store, tx *sql.Tx, o db.Object) (db.Object, error)
+	newObject() Object
+	createObject(s Store, tx *sql.Tx, o Object) (Object, error)
+	updateObject(s Store, tx *sql.Tx, o Object) (Object, error)
 	deleteObject(s Store, tx *sql.Tx, id int64) error
 }
 
@@ -524,8 +532,8 @@ func (s *StoreTester) Test(t testing.TB) {
 	s.testFailedTx(t, master)
 }
 
-func (s *StoreTester) createObjects(t testing.TB, mgr Store) []db.Object {
-	var objects []db.Object
+func (s *StoreTester) createObjects(t testing.TB, mgr Store) []Object {
+	var objects []Object
 	for i := 0; i < 100; i++ {
 		object := s.helper.newObject()
 		if err := withTestTx(func(tx *sql.Tx) error {

@@ -5,11 +5,7 @@ import (
 )
 
 type Pool struct {
-	ID int64 `db:"id"`
-}
-
-func (o Pool) ObjectID() int64 {
-	return o.ID
+	baseObject
 }
 
 type PoolEvent struct {
@@ -26,20 +22,12 @@ func (e *PoolEvent) SetObject(o Pool) {
 }
 
 type PoolStore struct {
-	baseStore[Pool, PoolEvent]
+	baseStore[Pool, PoolEvent, *Pool, *PoolEvent]
 	pools map[int64]Pool
 }
 
 func (s *PoolStore) reset() {
 	s.pools = map[int64]Pool{}
-}
-
-func (s *PoolStore) makeObject(id int64) Pool {
-	return Pool{ID: id}
-}
-
-func (s *PoolStore) makeObjectEvent(typ EventType) PoolEvent {
-	return PoolEvent{baseEvent: makeBaseEvent(typ)}
 }
 
 func (s *PoolStore) onCreateObject(pool Pool) {

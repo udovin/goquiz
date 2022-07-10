@@ -31,6 +31,11 @@ func (o Visit) EventID() int64 {
 	return o.ID
 }
 
+// SetEventID sets ID of visit.
+func (o *Visit) SetEventID(id int64) {
+	o.ID = id
+}
+
 // EventTime return time of visit.
 func (o Visit) EventTime() time.Time {
 	return time.Unix(o.Time, 0)
@@ -39,7 +44,7 @@ func (o Visit) EventTime() time.Time {
 // VisitStore represents visit store.
 type VisitStore struct {
 	db     *gosql.DB
-	events db.EventStore[Visit]
+	events db.EventStore[Visit, *Visit]
 }
 
 // MakeFromContext creates Visit from context.

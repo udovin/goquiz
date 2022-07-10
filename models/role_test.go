@@ -3,8 +3,6 @@ package models
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/udovin/solve/db"
 )
 
 type roleStoreTest struct{}
@@ -20,7 +18,7 @@ func (t *roleStoreTest) prepareDB(tx *sql.Tx) error {
 	_, err := tx.Exec(
 		`CREATE TABLE "role_event" (` +
 			`"event_id" integer PRIMARY KEY,` +
-			`"event_type" int8 NOT NULL,` +
+			`"event_kind" int8 NOT NULL,` +
 			`"event_time" bigint NOT NULL,` +
 			`"event_account_id" integer NULL,` +
 			`"id" integer NOT NULL,` +
@@ -33,21 +31,21 @@ func (t *roleStoreTest) newStore() Store {
 	return NewRoleStore(testDB, "role", "role_event")
 }
 
-func (t *roleStoreTest) newObject() db.Object {
+func (t *roleStoreTest) newObject() Object {
 	return Role{}
 }
 
 func (t *roleStoreTest) createObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	object := o.(Role)
 	err := s.(*RoleStore).Create(wrapContext(tx), &object)
 	return object, err
 }
 
 func (t *roleStoreTest) updateObject(
-	s Store, tx *sql.Tx, o db.Object,
-) (db.Object, error) {
+	s Store, tx *sql.Tx, o Object,
+) (Object, error) {
 	return o, s.(*RoleStore).Update(wrapContext(tx), o.(Role))
 }
 

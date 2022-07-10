@@ -8,14 +8,9 @@ import (
 
 // Setting represents setting.
 type Setting struct {
-	ID    int64  `db:"id"`
+	baseObject
 	Key   string `db:"key"`
 	Value string `db:"value"`
-}
-
-// ObjectID returns ID of setting.
-func (o Setting) ObjectID() int64 {
-	return o.ID
 }
 
 // Clone creates copy of setting.
@@ -41,7 +36,7 @@ func (e *SettingEvent) SetObject(o Setting) {
 
 // SettingStore represents store for settings.
 type SettingStore struct {
-	baseStore[Setting, SettingEvent]
+	baseStore[Setting, SettingEvent, *Setting, *SettingEvent]
 	settings map[int64]Setting
 	byKey    map[string]int64
 }
@@ -84,14 +79,6 @@ func (s *SettingStore) reset() {
 	s.byKey = map[string]int64{}
 }
 
-func (s *SettingStore) makeObject(id int64) Setting {
-	return Setting{ID: id}
-}
-
-func (s *SettingStore) makeObjectEvent(typ EventType) SettingEvent {
-	return SettingEvent{baseEvent: makeBaseEvent(typ)}
-}
-
 func (s *SettingStore) onCreateObject(setting Setting) {
 	s.settings[setting.ID] = setting
 	s.byKey[setting.Key] = setting.ID
@@ -103,6 +90,8 @@ func (s *SettingStore) onDeleteObject(id int64) {
 		delete(s.settings, setting.ID)
 	}
 }
+
+var _ baseStoreImpl[Setting] = (*SettingStore)(nil)
 
 // NewSettingStore creates a new instance of SettingStore.
 func NewSettingStore(db *gosql.DB, table, eventTable string) *SettingStore {

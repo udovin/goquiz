@@ -20,7 +20,9 @@ import (
 	"github.com/udovin/goquiz/api"
 	"github.com/udovin/goquiz/config"
 	"github.com/udovin/goquiz/core"
-	"github.com/udovin/goquiz/migrations"
+	"github.com/udovin/solve/db"
+
+	_ "github.com/udovin/goquiz/migrations"
 )
 
 var shutdown = make(chan os.Signal, 1)
@@ -145,7 +147,11 @@ func serverMain(cmd *cobra.Command, _ []string) {
 	<-ctx.Done()
 }
 
-func dbApplyMain(cmd *cobra.Command, _ []string) {
+func migrateMain(cmd *cobra.Command, args []string) {
+	createData, err := cmd.Flags().GetBool("create-data")
+	if err != nil {
+		panic(err)
+	}
 	cfg, err := getConfig(cmd)
 	if err != nil {
 		panic(err)
@@ -155,28 +161,22 @@ func dbApplyMain(cmd *cobra.Command, _ []string) {
 		panic(err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Apply(c); err != nil {
+	var options []db.MigrateOption
+	if len(args) > 0 {
+		options = append(options, db.WithMigration(args[0]))
+	}
+	if err := db.ApplyMigrations(context.Background(), c.DB, options...); err != nil {
 		panic(err)
 	}
-}
-
-func dbUnapplyMain(cmd *cobra.Command, _ []string) {
-	cfg, err := getConfig(cmd)
-	if err != nil {
-		panic(err)
-	}
-	c, err := core.NewCore(cfg)
-	if err != nil {
-		panic(err)
-	}
-	c.SetupAllStores()
-	if err := migrations.Unapply(c, false); err != nil {
-		panic(err)
+	if len(args) == 0 && createData {
+		if err := core.CreateData(context.Background(), c); err != nil {
+			panic(err)
+		}
 	}
 }
 
 func versionMain(cmd *cobra.Command, _ []string) {
-	println("GoQuiz version:", core.Version)
+	println("GoQuiz version:", config.Version)
 }
 
 // main is a main entry point.
@@ -188,21 +188,13 @@ func main() {
 		Run:   serverMain,
 		Short: "Starts API server",
 	})
-	dbCmd := cobra.Command{
-		Use:   "db",
-		Short: "Commands for managing database",
+	migrateCmd := cobra.Command{
+		Use:   "migrate",
+		Run:   migrateMain,
+		Short: "Applies migrations to database",
 	}
-	dbCmd.AddCommand(&cobra.Command{
-		Use:   "apply",
-		Run:   dbApplyMain,
-		Short: "Applies all new migrations to database",
-	})
-	dbCmd.AddCommand(&cobra.Command{
-		Use:   "unapply",
-		Run:   dbUnapplyMain,
-		Short: "Rolls back all applied migrations",
-	})
-	rootCmd.AddCommand(&dbCmd)
+	migrateCmd.Flags().Bool("create-data", false, "Create default objects")
+	rootCmd.AddCommand(&migrateCmd)
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Run:   versionMain,

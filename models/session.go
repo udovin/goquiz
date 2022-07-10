@@ -15,8 +15,7 @@ import (
 
 // Session represents account session.
 type Session struct {
-	// ID contains ID of session.
-	ID int64 `db:"id"`
+	baseObject
 	// AccountID contains ID of account.
 	AccountID int64 `db:"account_id"`
 	// Secret contains secret string of session.
@@ -29,11 +28,6 @@ type Session struct {
 	RemoteAddr string `db:"remote_addr"`
 	// UserAgent contains user agent header for created session.
 	UserAgent string `db:"user_agent"`
-}
-
-// ObjectID returns session ID.
-func (o Session) ObjectID() int64 {
-	return o.ID
 }
 
 // Clone creates copy of session.
@@ -77,7 +71,7 @@ func (e *SessionEvent) SetObject(o Session) {
 
 // SessionStore represents store for sessions.
 type SessionStore struct {
-	baseStore[Session, SessionEvent]
+	baseStore[Session, SessionEvent, *Session, *SessionEvent]
 	sessions  map[int64]Session
 	byAccount index[int64]
 }
@@ -123,15 +117,7 @@ func (s *SessionStore) GetByCookie(cookie string) (Session, error) {
 
 func (s *SessionStore) reset() {
 	s.sessions = map[int64]Session{}
-	s.byAccount = makeIndex[int64]()
-}
-
-func (s *SessionStore) makeObject(id int64) Session {
-	return Session{ID: id}
-}
-
-func (s *SessionStore) makeObjectEvent(typ EventType) SessionEvent {
-	return SessionEvent{baseEvent: makeBaseEvent(typ)}
+	s.byAccount = index[int64]{}
 }
 
 func (s *SessionStore) onCreateObject(session Session) {
@@ -145,6 +131,8 @@ func (s *SessionStore) onDeleteObject(id int64) {
 		delete(s.sessions, session.ID)
 	}
 }
+
+var _ baseStoreImpl[Session] = (*SessionStore)(nil)
 
 // NewSessionStore creates a new instance of SessionStore.
 func NewSessionStore(

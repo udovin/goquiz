@@ -8,17 +8,11 @@ import (
 
 // AccountRole represents a account role.
 type AccountRole struct {
-	// ID contains ID of account role.
-	ID int64 `db:"id"`
+	baseObject
 	// AccountID contains account ID.
 	AccountID int64 `db:"account_id"`
 	// RoleID contains role ID.
 	RoleID int64 `db:"role_id"`
-}
-
-// ObjectID return ID of account role.
-func (o AccountRole) ObjectID() int64 {
-	return o.ID
 }
 
 // Clone creates copy of account role.
@@ -44,7 +38,7 @@ func (e *AccountRoleEvent) SetObject(o AccountRole) {
 
 // AccountRoleStore represents store for account roles.
 type AccountRoleStore struct {
-	baseStore[AccountRole, AccountRoleEvent]
+	baseStore[AccountRole, AccountRoleEvent, *AccountRole, *AccountRoleEvent]
 	roles     map[int64]AccountRole
 	byAccount index[int64]
 }
@@ -77,15 +71,7 @@ func (s *AccountRoleStore) FindByAccount(id int64) ([]AccountRole, error) {
 
 func (s *AccountRoleStore) reset() {
 	s.roles = map[int64]AccountRole{}
-	s.byAccount = makeIndex[int64]()
-}
-
-func (s *AccountRoleStore) makeObject(id int64) AccountRole {
-	return AccountRole{ID: id}
-}
-
-func (s *AccountRoleStore) makeObjectEvent(typ EventType) AccountRoleEvent {
-	return AccountRoleEvent{baseEvent: makeBaseEvent(typ)}
+	s.byAccount = index[int64]{}
 }
 
 func (s *AccountRoleStore) onCreateObject(role AccountRole) {
@@ -100,7 +86,7 @@ func (s *AccountRoleStore) onDeleteObject(id int64) {
 	}
 }
 
-var _ baseStoreImpl[AccountRole, AccountRoleEvent] = (*AccountRoleStore)(nil)
+var _ baseStoreImpl[AccountRole] = (*AccountRoleStore)(nil)
 
 // NewAccountRoleStore creates a new instance of AccountRoleStore.
 func NewAccountRoleStore(

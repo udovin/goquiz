@@ -8,8 +8,7 @@ import (
 
 // Role represents a role.
 type Role struct {
-	// ID contains ID of role.
-	ID int64 `db:"id"`
+	baseObject
 	// Name contains role name.
 	//
 	// Name should be unique for all roles in the events.
@@ -230,9 +229,13 @@ var builtInRoles = map[string]struct{}{
 	DeleteSessionRole:              {},
 }
 
-// ObjectID return ID of role.
-func (o Role) ObjectID() int64 {
-	return o.ID
+// GetBuildInRoles returns all built-in roles.
+func GetBuiltInRoles() []string {
+	var roles []string
+	for role := range builtInRoles {
+		roles = append(roles, role)
+	}
+	return roles
 }
 
 // IsBuiltIn returns flag that role is built-in.
@@ -264,7 +267,7 @@ func (e *RoleEvent) SetObject(o Role) {
 
 // RoleStore represents a role store.
 type RoleStore struct {
-	baseStore[Role, RoleEvent]
+	baseStore[Role, RoleEvent, *Role, *RoleEvent]
 	roles  map[int64]Role
 	byName map[string]int64
 }
@@ -313,14 +316,6 @@ func (s *RoleStore) reset() {
 	s.byName = map[string]int64{}
 }
 
-func (s *RoleStore) makeObject(id int64) Role {
-	return Role{ID: id}
-}
-
-func (s *RoleStore) makeObjectEvent(typ EventType) RoleEvent {
-	return RoleEvent{baseEvent: makeBaseEvent(typ)}
-}
-
 func (s *RoleStore) onCreateObject(role Role) {
 	s.roles[role.ID] = role
 	s.byName[role.Name] = role.ID
@@ -332,6 +327,8 @@ func (s *RoleStore) onDeleteObject(id int64) {
 		delete(s.roles, role.ID)
 	}
 }
+
+var _ baseStoreImpl[Role] = (*RoleStore)(nil)
 
 // NewRoleStore creates a new instance of RoleStore.
 func NewRoleStore(

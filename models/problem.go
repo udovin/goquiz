@@ -5,11 +5,7 @@ import (
 )
 
 type Problem struct {
-	ID int64 `db:"id"`
-}
-
-func (o Problem) ObjectID() int64 {
-	return o.ID
+	baseObject
 }
 
 type ProblemEvent struct {
@@ -26,20 +22,12 @@ func (e *ProblemEvent) SetObject(o Problem) {
 }
 
 type ProblemStore struct {
-	baseStore[Problem, ProblemEvent]
+	baseStore[Problem, ProblemEvent, *Problem, *ProblemEvent]
 	problems map[int64]Problem
 }
 
 func (s *ProblemStore) reset() {
 	s.problems = map[int64]Problem{}
-}
-
-func (s *ProblemStore) makeObject(id int64) Problem {
-	return Problem{ID: id}
-}
-
-func (s *ProblemStore) makeObjectEvent(typ EventType) ProblemEvent {
-	return ProblemEvent{baseEvent: makeBaseEvent(typ)}
 }
 
 func (s *ProblemStore) onCreateObject(problem Problem) {

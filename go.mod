@@ -7,10 +7,11 @@ require (
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/labstack/gommon v0.3.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
 	github.com/spf13/cobra v1.5.0
 	github.com/udovin/gosql v0.0.0-20220426203332-0ec503d9d791
-	github.com/udovin/solve v0.0.0-20220614170029-21cde6252109
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+	github.com/udovin/solve v0.0.0-20220710195023-6ba4bcfcb602
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 )
 
 require (
@@ -28,8 +29,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
-	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
+	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
+	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
+	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 )

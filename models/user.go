@@ -13,7 +13,7 @@ import (
 
 // User contains common information about user.
 type User struct {
-	ID           int64   `db:"id"`
+	baseObject
 	AccountID    int64   `db:"account_id"`
 	Login        string  `db:"login"`
 	PasswordHash string  `db:"password_hash"`
@@ -27,11 +27,6 @@ type User struct {
 // AccountKind returns UserAccount kind.
 func (o User) AccountKind() AccountKind {
 	return UserAccount
-}
-
-// ObjectID returns ID of user.
-func (o User) ObjectID() int64 {
-	return o.ID
 }
 
 // Clone creates copy of user.
@@ -57,7 +52,7 @@ func (e *UserEvent) SetObject(o User) {
 
 // UserStore represents users store.
 type UserStore struct {
-	baseStore[User, UserEvent]
+	baseStore[User, UserEvent, *User, *UserEvent]
 	users     map[int64]User
 	byAccount map[int64]int64
 	byLogin   map[string]int64
@@ -126,14 +121,6 @@ func (s *UserStore) reset() {
 	s.byLogin = map[string]int64{}
 }
 
-func (s *UserStore) makeObject(id int64) User {
-	return User{ID: id}
-}
-
-func (s *UserStore) makeObjectEvent(typ EventType) UserEvent {
-	return UserEvent{baseEvent: makeBaseEvent(typ)}
-}
-
 func (s *UserStore) onCreateObject(user User) {
 	s.users[user.ID] = user
 	s.byAccount[user.AccountID] = user.ID
@@ -147,6 +134,8 @@ func (s *UserStore) onDeleteObject(id int64) {
 		delete(s.users, user.ID)
 	}
 }
+
+var _ baseStoreImpl[User] = (*UserStore)(nil)
 
 // NewUserStore creates new instance of user store.
 func NewUserStore(

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,10 +15,13 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+	"github.com/nsf/jsondiff"
 
 	"github.com/udovin/goquiz/config"
 	"github.com/udovin/goquiz/core"
-	"github.com/udovin/goquiz/migrations"
+	"github.com/udovin/solve/db"
+
+	_ "github.com/udovin/goquiz/migrations"
 )
 
 type testCheckState struct {
@@ -44,13 +48,16 @@ func (s *testCheckState) Check(data any) {
 		}
 		s.tb.Fatalf("Unexpected check with data: %s", raw)
 	}
-	if string(s.checks[s.pos]) != string(raw) {
+	options := jsondiff.DefaultConsoleOptions()
+	diff, report := jsondiff.Compare(s.checks[s.pos], raw, &options)
+	if diff != jsondiff.FullMatch {
 		if s.reset {
 			s.checks[s.pos] = raw
 			s.pos++
 			return
 		}
-		s.tb.Fatalf("Unexpected check with data: %s, expected: %s", raw, s.checks[s.pos])
+		s.tb.Error("Unexpected result difference:")
+		s.tb.Fatalf(report)
 	}
 	s.pos++
 }
@@ -121,10 +128,13 @@ func testSetup(tb testing.TB) {
 		tb.Fatal("Error:", err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Unapply(c, true); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB, db.WithZeroMigration); err != nil {
 		tb.Fatal("Error:", err)
 	}
-	if err := migrations.Apply(c); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB); err != nil {
+		tb.Fatal("Error:", err)
+	}
+	if err := core.CreateData(context.Background(), c); err != nil {
 		tb.Fatal("Error:", err)
 	}
 	if err := c.Start(); err != nil {
@@ -141,7 +151,7 @@ func testSetup(tb testing.TB) {
 func testTeardown(tb testing.TB) {
 	testSrv.Close()
 	testView.core.Stop()
-	_ = migrations.Unapply(testView.core, true)
+	_ = db.ApplyMigrations(context.Background(), testView.core.DB, db.WithZeroMigration)
 	testChecks.Close()
 }
 

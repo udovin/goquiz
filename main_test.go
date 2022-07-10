@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/udovin/goquiz/config"
 	"github.com/udovin/goquiz/core"
-	"github.com/udovin/goquiz/migrations"
+	"github.com/udovin/solve/db"
+
+	_ "github.com/udovin/goquiz/migrations"
 )
 
 var (
@@ -51,7 +54,7 @@ func testSetup(tb testing.TB) {
 		tb.Fatal("Error:", err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Apply(c); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB); err != nil {
 		tb.Fatal("Error:", err)
 	}
 }
@@ -63,7 +66,7 @@ func testTeardown(tb testing.TB) {
 		tb.Fatal("Error:", err)
 	}
 	c.SetupAllStores()
-	if err := migrations.Unapply(c, true); err != nil {
+	if err := db.ApplyMigrations(context.Background(), c.DB, db.WithZeroMigration); err != nil {
 		tb.Fatal("Error:", err)
 	}
 }
@@ -80,28 +83,17 @@ func TestServerMain(t *testing.T) {
 	serverMain(&cmd, nil)
 }
 
-func TestDBApplyMain(t *testing.T) {
+func TestMigrateMain(t *testing.T) {
 	testSetup(t)
 	defer testTeardown(t)
 	cmd := cobra.Command{}
 	cmd.Flags().String("config", "", "")
+	cmd.Flags().Bool("create-data", false, "")
 	cmd.Flags().Set("config", testConfigFile.Name())
 	go func() {
 		shutdown <- os.Interrupt
 	}()
-	dbApplyMain(&cmd, nil)
-}
-
-func TestDBUnapplyMain(t *testing.T) {
-	testSetup(t)
-	defer testTeardown(t)
-	cmd := cobra.Command{}
-	cmd.Flags().String("config", "", "")
-	cmd.Flags().Set("config", testConfigFile.Name())
-	go func() {
-		shutdown <- os.Interrupt
-	}()
-	dbUnapplyMain(&cmd, nil)
+	migrateMain(&cmd, nil)
 }
 
 func TestVersionMain(t *testing.T) {
