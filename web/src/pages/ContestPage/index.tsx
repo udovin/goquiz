@@ -1,5 +1,5 @@
 import { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
-import { Redirect, Route, RouteComponentProps, Switch } from "react-router";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import Page from "../../components/Page";
 import {
@@ -33,6 +33,7 @@ import Button from "../../ui/Button";
 import Alert from "../../ui/Alert";
 import UserLink from "../../ui/UserLink";
 import DateTime from "../../ui/DateTime";
+import { Tab, TabContent, Tabs, TabsGroup } from "../../ui/Tabs";
 import "./index.scss";
 
 type ContestPageParams = {
@@ -168,7 +169,7 @@ const ContestSolutionBlock: FC<ContestSolutionBlockProps> = props => {
 	}
 	const { id, report, participant, problem, create_time } = solution;
 	return <>
-		<Block title="Solution" className="b-contest-solution">{error ?
+		<Block title={`Solution #${id}`} className="b-contest-solution">{error ?
 			<Alert>{error.message}</Alert> :
 			<table className="ui-table">
 				<thead>
@@ -230,8 +231,9 @@ const ContestSolutionBlock: FC<ContestSolutionBlockProps> = props => {
 	</>;
 };
 
-const CreateContestProblemBlock = ({ match }: RouteComponentProps<ContestPageParams>) => {
-	const { contest_id } = match.params;
+const CreateContestProblemBlock: FC = () => {
+	const params = useParams();
+	const { contest_id } = params;
 	const [success, setSuccess] = useState<boolean>();
 	const onSubmit = (event: any) => {
 		event.preventDefault();
@@ -249,7 +251,7 @@ const CreateContestProblemBlock = ({ match }: RouteComponentProps<ContestPagePar
 			.then(() => setSuccess(true));
 	};
 	if (success) {
-		return <Redirect to={`/contests/${contest_id}`} />
+		return <Navigate to={`/contests/${contest_id}`} />
 	}
 	return <FormBlock onSubmit={onSubmit} title="Add contest problem" footer={
 		<Button type="submit" color="primary">Create</Button>
@@ -267,15 +269,16 @@ type ContestProblemPageParams = ContestPageParams & {
 	problem_code: string;
 }
 
-const ContestProblemSideBlock = ({ match }: RouteComponentProps<ContestProblemPageParams>) => {
-	const { contest_id, problem_code } = match.params;
+const ContestProblemSideBlock: FC = () => {
+	const params = useParams();
+	const { contest_id, problem_code } = params;
 	const [newSolution, setNewSolution] = useState<Solution>();
 	const [file, setFile] = useState<File>();
 	const [error, setError] = useState<ErrorResponse>();
 	const onSubmit = (event: any) => {
 		event.preventDefault();
 		setError(undefined);
-		file && submitContestSolution(Number(contest_id), problem_code, {
+		file && submitContestSolution(Number(contest_id), String(problem_code), {
 			file: file,
 		})
 			.then(solution => {
@@ -286,7 +289,7 @@ const ContestProblemSideBlock = ({ match }: RouteComponentProps<ContestProblemPa
 			.catch(setError);
 	};
 	if (newSolution) {
-		return <Redirect to={`/contests/${contest_id}/solutions/${newSolution.id}`} />
+		return <Navigate to={`/contests/${contest_id}/solutions/${newSolution.id}`} />
 	}
 	const errorMessage = error && error.message;
 	const invalidFields = (error && error.invalid_fields) || {};
@@ -304,8 +307,9 @@ const ContestProblemSideBlock = ({ match }: RouteComponentProps<ContestProblemPa
 	</FormBlock>;
 };
 
-const ContestProblemBlock = ({ match }: RouteComponentProps<ContestProblemPageParams>) => {
-	const { contest_id, problem_code } = match.params;
+const ContestProblemBlock: FC = () => {
+	const params = useParams();
+	const { contest_id, problem_code } = params;
 	const [problem, setProblem] = useState<ContestProblem>();
 	useEffect(() => {
 		fetch("/api/v0/contests/" + contest_id + "/problems/" + problem_code)
@@ -326,23 +330,22 @@ type ContestTabsProps = BlockProps & {
 };
 
 const ContestTabs: FC<ContestTabsProps> = props => {
-	const { contest, currentTab } = props;
-	const getActiveClass = (name: string): string => {
-		return name === currentTab ? "active" : "";
-	};
+	const { contest } = props;
+	const { permissions } = contest;
+	const canManage = permissions && (permissions.includes("update_contest") || permissions.includes("delete_contest"));
 	return <Block className="b-contest-tabs">
-		<ul className="ui-tabs">
-			<li className={getActiveClass("problems")}>
+		<Tabs>
+			<Tab tab="problems">
 				<Link to={`/contests/${contest.id}`}>Problems</Link>
-			</li>
-			<li className={getActiveClass("solutions")}>
+			</Tab>
+			<Tab tab="solutions">
 				<Link to={`/contests/${contest.id}/solutions`}>Solutions</Link>
-			</li>
-			{contest.permissions && (contest.permissions.includes("update_contest") || contest.permissions.includes("delete_contest")) && <li className={getActiveClass("manage")}>
+			</Tab>
+			{canManage && <Tab tab="manage">
 				<Link to={`/contests/${contest.id}/manage`}>Manage</Link>
-			</li>}
-		</ul>
-	</Block>;
+			</Tab>}
+		</Tabs>
+	</Block >;
 };
 
 export type EditContestBlockProps = {
@@ -407,7 +410,7 @@ const DeleteContestBlock: FC<DeleteContestBlockProps> = props => {
 		setError(undefined);
 	};
 	if (redirect) {
-		return <Redirect to="/" />;
+		return <Navigate to="/" />;
 	}
 	return <FormBlock className="b-contest-edit" title="Delete contest" onSubmit={onSubmit} footer={<>
 		<Button
@@ -623,10 +626,54 @@ const EditContestParticipantsBlock: FC<EditContestParticipantsBlockProps> = prop
 };
 
 
-const ContestPage = ({ match }: RouteComponentProps<ContestPageParams>) => {
-	const { contest_id } = match.params;
+type ContestTabProps = {
+	contest: Contest;
+	setContest?(contest: Contest): void;
+};
+
+const ContestProblemsTab: FC<ContestTabProps> = props => {
+	const { contest } = props;
+	return <TabContent tab="problems" setCurrent>
+		<ContestProblemsBlock contest={contest} />;
+	</TabContent>;
+};
+
+const ContestSolutionsTab: FC<ContestTabProps> = props => {
+	const { contest } = props;
+	return <TabContent tab="solutions" setCurrent>
+		<ContestSolutionsBlock contest={contest} />;
+	</TabContent>;
+};
+
+const ContestSolutionTab: FC<ContestTabProps> = props => {
+	const { contest } = props;
+	const params = useParams();
+	return <TabContent tab="solution" setCurrent>
+		<ContestSolutionBlock contest={contest} solutionID={Number(params.solution_id)} />
+	</TabContent>;
+};
+
+const ContestProblemTab: FC<ContestTabProps> = props => {
+	return <TabContent tab="problem" setCurrent>
+		<ContestProblemBlock />
+	</TabContent>;
+};
+
+const ContestManageTab: FC<ContestTabProps> = props => {
+	const { contest, setContest } = props;
+	const { permissions } = contest;
+	return <TabContent tab="manage" setCurrent>
+		{permissions && permissions.includes("update_contest") && <EditContestBlock contest={contest} onUpdateContest={setContest} />}
+		{permissions && (permissions.includes("observe_contest_problems")) && <EditContestProblemsBlock contest={contest} />}
+		{permissions && (permissions.includes("observe_contest_participants")) && <EditContestParticipantsBlock contest={contest} />}
+		{permissions && permissions.includes("delete_contest") && <DeleteContestBlock contest={contest} />}
+	</TabContent>;
+};
+
+const ContestPage: FC = () => {
+	const params = useParams();
+	const { contest_id } = params;
 	const [contest, setContest] = useState<Contest>();
-	const [currentTab, setCurrentTab] = useState<string>();
 	useEffect(() => {
 		fetch("/api/v0/contests/" + contest_id)
 			.then(result => result.json())
@@ -636,43 +683,19 @@ const ContestPage = ({ match }: RouteComponentProps<ContestPageParams>) => {
 		return <>Loading...</>;
 	}
 	const { title, permissions } = contest;
-	return <Page title={`Contest: ${title}`} sidebar={<Switch>
-		<Route exact path="/contests/:contest_id/problems/:problem_code" component={ContestProblemSideBlock} />
-	</Switch>}>
-		<ContestTabs contest={contest} currentTab={currentTab} />
-		<Switch>
-			<Route exact path="/contests/:contest_id">
-				{() => {
-					setCurrentTab("problems");
-					return <ContestProblemsBlock contest={contest} />;
-				}}
-			</Route>
-			<Route exact path="/contests/:contest_id/solutions">
-				{() => {
-					setCurrentTab("solutions");
-					return <ContestSolutionsBlock contest={contest} />;
-				}}
-			</Route>
-			<Route exact path="/contests/:contest_id/solutions/:solution_id">
-				{({ match }) => {
-					setCurrentTab("solution");
-					return <ContestSolutionBlock contest={contest} solutionID={Number(match?.params.solution_id)} />;
-				}}
-			</Route>
-			<Route exact path="/contests/:contest_id/manage">
-				{() => {
-					setCurrentTab("manage");
-					return <>
-						{permissions && permissions.includes("update_contest") && <EditContestBlock contest={contest} onUpdateContest={setContest} />}
-						{permissions && (permissions.includes("observe_contest_problems")) && <EditContestProblemsBlock contest={contest} />}
-						{permissions && (permissions.includes("observe_contest_participants")) && <EditContestParticipantsBlock contest={contest} />}
-						{permissions && permissions.includes("delete_contest") && <DeleteContestBlock contest={contest} />}
-					</>;
-				}}
-			</Route>
-			<Route exact path="/contests/:contest_id/problems/create" component={CreateContestProblemBlock} />
-			<Route exact path="/contests/:contest_id/problems/:problem_code" component={ContestProblemBlock} />
-		</Switch>
+	return <Page title={`Contest: ${title}`} sidebar={<Routes>
+		<Route path="/problems/:problem_code" element={<ContestProblemSideBlock />} />
+	</Routes>}>
+		<TabsGroup>
+			<ContestTabs contest={contest} />
+			<Routes>
+				<Route index element={<ContestProblemsTab contest={contest} />} />
+				<Route path="/solutions" element={<ContestSolutionsTab contest={contest} />} />
+				<Route path="/solutions/:solution_id" element={<ContestSolutionTab contest={contest} />} />
+				<Route path="/problems/:problem_code" element={<ContestProblemTab contest={contest} />} />\
+				<Route path="/manage" element={<ContestManageTab contest={contest} setContest={setContest} />} />
+			</Routes>
+		</TabsGroup>
 	</Page>;
 };
 

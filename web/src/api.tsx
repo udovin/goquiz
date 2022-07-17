@@ -226,7 +226,7 @@ export type RegisterForm = {
 };
 
 const HEADERS = {
-	"GoQuiz-Web-Version": "0.1.0",
+	"Goquiz-Web-Version": "0.1.0",
 };
 
 const POST_JSON_HEADERS = {

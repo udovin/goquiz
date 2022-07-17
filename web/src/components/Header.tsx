@@ -1,10 +1,11 @@
-import React, { FC, useContext } from "react";
-import { Link, RouteComponentProps, withRouter } from "react-router-dom";
+import { FC, useContext } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../AuthContext";
 
-const Header: FC<RouteComponentProps> = props => {
+const Header: FC = props => {
+	const location = useLocation();
 	const getActiveClass = (...names: string[]): string => {
-		const { pathname } = props.location;
+		const { pathname } = location;
 		for (let name of names) {
 			if (name === pathname) {
 				return "active";
@@ -30,8 +31,8 @@ const Header: FC<RouteComponentProps> = props => {
 	return <header id="header">
 		<div id="header-top">
 			<div id="header-logo">
-				<Link to="/">GoQuiz</Link>
-				<span>Quiz System</span>
+				<Link to="/">Solve</Link>
+				<span>Online Judge</span>
 			</div>
 			<div id="header-account">
 				<ul>
@@ -59,4 +60,4 @@ const Header: FC<RouteComponentProps> = props => {
 	</header>;
 };
 
-export default withRouter(Header);
+export default Header;
